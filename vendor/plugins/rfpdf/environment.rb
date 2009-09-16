@@ -18,8 +18,6 @@ end
 
 require "#{File.dirname __FILE__}/lib/math"
 
-require "#{File.dirname __FILE__}/lib/tcpdf"
-
 require "#{File.dirname __FILE__}/lib/fpdf/errors"
 require "#{File.dirname __FILE__}/lib/fpdf/fpdf"
 require "#{File.dirname __FILE__}/lib/fpdf/chinese"
@@ -27,4 +25,3 @@ require "#{File.dirname __FILE__}/lib/fpdf/japanese"
 require "#{File.dirname __FILE__}/lib/fpdf/korean"
 
 ActionView::Template::register_template_handler 'rfpdf', RFPDF::View
-Mime::Type.register "application/pdf", :pdf
