@@ -1,7 +1,7 @@
 #!/bin/sh
 
-host="root@serv"
-dir="/var/www/localhost/apps/redmine-new"
+host="redmine@redmine.tsdv.net"
+dir="/home/redmine/apps/redmine-new"
 
 ssh "$host" mkdir -p "$dir"
 rsync -rLzc --progress --force --delete \
@@ -13,4 +13,4 @@ rsync -rLzc --progress --force --delete \
   --exclude "/config/database.yml" \
   --exclude "/config/email.yml" \
   . "$host:$dir"
-ssh "$host" sh -c '"chown -R redmine.redmine '$dir'; touch '$dir/tmp/restart.txt'"'
+ssh "$host" touch "$dir/tmp/restart.txt"
