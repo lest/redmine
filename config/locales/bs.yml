@@ -1,6 +1,7 @@
 #Ernad Husremovic hernad@bring.out.ba
 
 bs:
+  direction: ltr
   date:
     formats:
       default: "%d.%m.%Y"
@@ -129,6 +130,7 @@ bs:
         greater_than_start_date: "mora biti veći nego početni datum"
         not_same_project: "ne pripada istom projektu"
         circular_dependency: "Ova relacija stvar cirkularnu zavisnost"
+        cant_link_an_issue_with_a_descendant: "An issue can not be linked to one of its subtasks"
 
   actionview_instancetag_blank_option: Molimo odaberite
   
@@ -184,7 +186,7 @@ bs:
   mail_body_account_information: Informacija o vašem korisničkom računu
   mail_subject_account_activation_request: "{{value}} zahtjev za aktivaciju korisničkog računa"
   mail_body_account_activation_request: "Novi korisnik ({{value}}) se registrovao. Korisnički račun čeka vaše odobrenje za aktivaciju:"
-  mail_subject_reminder: "{{count}} aktivnost(i) u kašnjenju u narednim danima"
+  mail_subject_reminder: "{{count}} aktivnost(i) u kašnjenju u narednim {{days}} danima"
   mail_body_reminder: "{{count}} aktivnost(i) koje su dodjeljenje vama u narednim {{days}} danima:"
   
   gui_validation_error: 1 greška
@@ -250,7 +252,6 @@ bs:
   field_attr_lastname: Atribut za prezime
   field_attr_mail: Atribut za email
   field_onthefly: 'Kreiranje korisnika "On-the-fly"'
-  field_start_date: Početak
   field_done_ratio: % Realizovano
   field_auth_source: Mod za authentifikaciju
   field_hide_mail: Sakrij moju email adresu
@@ -674,7 +675,6 @@ bs:
   label_search_titles_only: Pretraži samo naslove
   label_user_mail_option_all: "Za bilo koji događaj na svim mojim projektima"
   label_user_mail_option_selected: "Za bilo koji događaj na odabranim projektima..."
-  label_user_mail_option_none: "Samo za stvari koje ja gledam ili sam u njih uključen"
   label_user_mail_no_self_notified: "Ne želim notifikaciju za promjene koje sam ja napravio"
   label_registration_activation_by_email: aktivacija korisničkog računa email-om
   label_registration_manual_activation: ručna aktivacija korisničkog računa
@@ -748,9 +748,9 @@ bs:
   text_subprojects_destroy_warning: "Podprojekt(i): {{value}} će takođe biti izbrisani."
   text_workflow_edit: Odaberite ulogu i područje aktivnosti za ispravku toka promjena na aktivnosti
   text_are_you_sure: Da li ste sigurni ?
-  text_tip_task_begin_day: zadatak počinje danas
-  text_tip_task_end_day: zadatak završava danas
-  text_tip_task_begin_end_day: zadatak započinje i završava danas
+  text_tip_issue_begin_day: zadatak počinje danas
+  text_tip_issue_end_day: zadatak završava danas
+  text_tip_issue_begin_end_day: zadatak započinje i završava danas
   text_project_identifier_info: 'Samo mala slova (a-z), brojevi i crtice su dozvoljeni.<br />Nakon snimanja, identifikator se ne može mijenjati.'
   text_caracters_maximum: "maksimum {{count}} karaktera."
   text_caracters_minimum: "Dužina mora biti najmanje {{count}} znakova."
@@ -828,12 +828,12 @@ bs:
   text_wiki_page_destroy_children: Delete child pages and all their descendants
   setting_password_min_length: Minimum password length
   field_group_by: Group results by
-  mail_subject_wiki_content_updated: "'{{page}}' wiki page has been updated"
+  mail_subject_wiki_content_updated: "'{{id}}' wiki page has been updated"
   label_wiki_content_added: Wiki page added
-  mail_subject_wiki_content_added: "'{{page}}' wiki page has been added"
-  mail_body_wiki_content_added: The '{{page}}' wiki page has been added by {{author}}.
+  mail_subject_wiki_content_added: "'{{id}}' wiki page has been added"
+  mail_body_wiki_content_added: The '{{id}}' wiki page has been added by {{author}}.
   label_wiki_content_updated: Wiki page updated
-  mail_body_wiki_content_updated: The '{{page}}' wiki page has been updated by {{author}}.
+  mail_body_wiki_content_updated: The '{{id}}' wiki page has been updated by {{author}}.
   permission_add_project: Create project
   setting_new_project_user_role_id: Role given to a non-admin user who creates a project
   label_view_all_revisions: View all revisions
@@ -922,3 +922,20 @@ bs:
   text_zoom_in: Zoom in
   notice_unable_delete_time_entry: Unable to delete time log entry.
   label_overall_spent_time: Overall spent time
+  field_time_entries: Log time
+  project_module_gantt: Gantt
+  project_module_calendar: Calendar
+  button_edit_associated_wikipage: "Edit associated Wiki page: {{page_title}}"
+  text_are_you_sure_with_children: Delete issue and all child issues?
+  field_text: Text field
+  label_user_mail_option_only_owner: Only for things I am the owner of
+  setting_default_notification_option: Default notification option
+  label_user_mail_option_only_my_events: Only for things I watch or I'm involved in
+  label_user_mail_option_only_assigned: Only for things I am assigned to
+  label_user_mail_option_none: No events
+  field_member_of_group: Assignee's group
+  field_assigned_to_role: Assignee's role
+  notice_not_authorized_archived_project: The project you're trying to access has been archived.
+  field_start_date: Start date
+  label_principal_search: "Search for user or group:"
+  label_user_search: "Search for user:"

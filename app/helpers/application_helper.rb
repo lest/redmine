@@ -32,6 +32,11 @@ module ApplicationHelper
   end
 
   # Display a link if user is authorized
+  #
+  # @param [String] name Anchor text (passed to link_to)
+  # @param [Hash] options Hash params. This will checked by authorize_for to see if the user is authorized
+  # @param [optional, Hash] html_options Options passed to link_to
+  # @param [optional, Hash] parameters_for_method_reference Extra parameters for link_to
   def link_to_if_authorized(name, options = {}, html_options = nil, *parameters_for_method_reference)
     link_to(name, options, html_options, *parameters_for_method_reference) if authorize_for(options[:controller] || params[:controller], options[:action])
   end
@@ -103,6 +108,23 @@ module ApplicationHelper
     link_to(text, {:controller => 'repositories', :action => 'revision', :id => project, :rev => revision}, :title => l(:label_revision_id, revision))
   end
 
+  # Generates a link to a project if active
+  # Examples:
+  # 
+  #   link_to_project(project)                          # => link to the specified project overview
+  #   link_to_project(project, :action=>'settings')     # => link to project settings
+  #   link_to_project(project, {:only_path => false}, :class => "project") # => 3rd arg adds html options
+  #   link_to_project(project, {}, :class => "project") # => html options with default url (project overview)
+  #
+  def link_to_project(project, options={}, html_options = nil)
+    if project.active?
+      url = {:controller => 'projects', :action => 'show', :id => project}.merge(options)
+      link_to(h(project), url, html_options)
+    else
+      h(project)
+    end
+  end
+
   def toggle_link(name, id, options={})
     onclick = "Element.toggle('#{id}'); "
     onclick << (options[:focus] ? "Form.Element.focus('#{options[:focus]}'); " : "this.blur(); ")
@@ -155,7 +177,7 @@ module ApplicationHelper
       content << "<ul class=\"pages-hierarchy\">\n"
       pages[node].each do |page|
         content << "<li>"
-        content << link_to(h(page.pretty_title), {:controller => 'wiki', :action => 'index', :id => page.project, :page => page.title},
+        content << link_to(h(page.pretty_title), {:controller => 'wiki', :action => 'show', :project_id => page.project, :id => page.title},
                            :title => (page.respond_to?(:updated_on) ? l(:label_updated_time, distance_of_time_in_words(Time.now, page.updated_on)) : nil))
         content << "\n" + render_page_hierarchy(pages, page.id) if pages[page.id]
         content << "</li>\n"
@@ -216,15 +238,10 @@ module ApplicationHelper
   end
   
   # Yields the given block for each project with its level in the tree
+  #
+  # Wrapper for Project#project_tree
   def project_tree(projects, &block)
-    ancestors = []
-    projects.sort_by(&:lft).each do |project|
-      while (ancestors.any? && !project.is_descendant_of?(ancestors.last)) 
-        ancestors.pop
-      end
-      yield project, ancestors.size
-      ancestors << project
-    end
+    Project.project_tree(projects, &block)
   end
   
   def project_nested_ul(projects, &block)
@@ -285,7 +302,7 @@ module ApplicationHelper
   def time_tag(time)
     text = distance_of_time_in_words(Time.now, time)
     if @project
-      link_to(text, {:controller => 'projects', :action => 'activity', :id => @project, :from => time.to_date}, :title => format_time(time))
+      link_to(text, {:controller => 'activities', :action => 'index', :id => @project, :from => time.to_date}, :title => format_time(time))
     else
       content_tag('acronym', text, :title => format_time(time))
     end
@@ -368,12 +385,12 @@ module ApplicationHelper
       ancestors = (@project.root? ? [] : @project.ancestors.visible)
       if ancestors.any?
         root = ancestors.shift
-        b << link_to(h(root), {:controller => 'projects', :action => 'show', :id => root, :jump => current_menu_item}, :class => 'root')
+        b << link_to_project(root, {:jump => current_menu_item}, :class => 'root')
         if ancestors.size > 2
           b << '&#8230;'
           ancestors = ancestors[-2, 2]
         end
-        b += ancestors.collect {|p| link_to(h(p), {:controller => 'projects', :action => 'show', :id => p, :jump => current_menu_item}, :class => 'ancestor') }
+        b += ancestors.collect {|p| link_to_project(p, {:jump => current_menu_item}, :class => 'ancestor') }
       end
       b << h(@project)
       b.join(' &#187; ')
@@ -391,6 +408,19 @@ module ApplicationHelper
       @html_title ||= []
       @html_title += args
     end
+  end
+
+  # Returns the theme, controller name, and action as css classes for the
+  # HTML body.
+  def body_css_classes
+    css = []
+    if theme = Redmine::Themes.theme(Setting.ui_theme)
+      css << 'theme-' + theme.name
+    end
+
+    css << 'controller-' + params[:controller]
+    css << 'action-' + params[:action]
+    css.join(' ')
   end
 
   def accesskey(s)
@@ -511,7 +541,8 @@ module ApplicationHelper
             when :local; "#{title}.html"
             when :anchor; "##{title}"   # used for single-file wiki export
             else
-              url_for(:only_path => only_path, :controller => 'wiki', :action => 'index', :id => link_project, :page => Wiki.titleize(page), :anchor => anchor)
+              wiki_page_id = page.present? ? Wiki.titleize(page) : nil
+              url_for(:only_path => only_path, :controller => 'wiki', :action => 'show', :project_id => link_project, :id => wiki_page_id, :anchor => anchor)
             end
           link_to((title || page), url, :class => ('wiki-page' + (wiki_page ? '' : ' new')))
         else
@@ -592,8 +623,7 @@ module ApplicationHelper
             end
           when 'project'
             if p = Project.visible.find_by_id(oid)
-              link = link_to h(p.name), {:only_path => only_path, :controller => 'projects', :action => 'show', :id => p},
-                                              :class => 'project'
+              link = link_to_project(p, {:only_path => only_path}, :class => 'project')
             end
           end
         elsif sep == ':'
@@ -635,8 +665,7 @@ module ApplicationHelper
             end
           when 'project'
             if p = Project.visible.find(:first, :conditions => ["identifier = :s OR LOWER(name) = :s", {:s => name.downcase}])
-              link = link_to h(p.name), {:only_path => only_path, :controller => 'projects', :action => 'show', :id => p},
-                                              :class => 'project'
+              link = link_to_project(p, {:only_path => only_path}, :class => 'project')
             end
           end
         end
@@ -709,6 +738,11 @@ module ApplicationHelper
         javascript_include_tag('context_menu') +
           stylesheet_link_tag('context_menu')
       end
+      if l(:direction) == 'rtl'
+        content_for :header_tags do
+          stylesheet_link_tag('context_menu_rtl')
+        end
+      end
       @context_menu_included = true
     end
     javascript_tag "new ContextMenu('#{ url_for(url) }')"
@@ -772,7 +806,7 @@ module ApplicationHelper
   # +user+ can be a User or a string that will be scanned for an email address (eg. 'joe <joe@foo.bar>')
   def avatar(user, options = { })
     if Setting.gravatar_enabled?
-      options.merge!({:ssl => Setting.protocol == 'https', :default => Setting.gravatar_default})
+      options.merge!({:ssl => (defined?(request) && request.ssl?), :default => Setting.gravatar_default})
       email = nil
       if user.respond_to?(:mail)
         email = user.mail
@@ -780,7 +814,13 @@ module ApplicationHelper
         email = $1
       end
       return gravatar(email.to_s.downcase, options) unless email.blank? rescue nil
+    else
+      ''
     end
+  end
+
+  def favicon
+    "<link rel='shortcut icon' href='#{image_path('/favicon.ico')}' />"
   end
 
   private

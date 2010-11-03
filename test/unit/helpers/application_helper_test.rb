@@ -17,10 +17,7 @@
 
 require File.dirname(__FILE__) + '/../../test_helper'
 
-class ApplicationHelperTest < HelperTestCase
-  include ApplicationHelper
-  include ActionView::Helpers::TextHelper
-  include ActionView::Helpers::DateHelper
+class ApplicationHelperTest < ActionView::TestCase
   
   fixtures :projects, :roles, :enabled_modules, :users,
                       :repositories, :changesets, 
@@ -32,6 +29,26 @@ class ApplicationHelperTest < HelperTestCase
 
   def setup
     super
+  end
+
+  context "#link_to_if_authorized" do
+    context "authorized user" do
+      should "be tested"
+    end
+    
+    context "unauthorized user" do
+      should "be tested"
+    end
+    
+    should "allow using the :controller and :action for the target link" do
+      User.current = User.find_by_login('admin')
+
+      @project = Issue.first.project # Used by helper
+      response = link_to_if_authorized("By controller/action",
+                                       {:controller => 'issues', :action => 'edit', :id => Issue.first.id})
+      assert_match /href/, response
+    end
+    
   end
   
   def test_auto_links
@@ -62,6 +79,8 @@ class ApplicationHelperTest < HelperTestCase
       'http://example.net/path!602815048C7B5C20!302.html' => '<a class="external" href="http://example.net/path!602815048C7B5C20!302.html">http://example.net/path!602815048C7B5C20!302.html</a>',
       # escaping
       'http://foo"bar' => '<a class="external" href="http://foo&quot;bar">http://foo"bar</a>',
+      # wrap in angle brackets
+      '<http://foo.bar>' => '&lt;<a class="external" href="http://foo.bar">http://foo.bar</a>&gt;'
     }
     to_test.each { |text, result| assert_equal "<p>#{result}</p>", textilizable(text) }
   end
@@ -234,8 +253,8 @@ RAW
       '[[Unknown page]]' => '<a href="/projects/ecookbook/wiki/Unknown_page" class="wiki-page new">Unknown page</a>',
       '[[Unknown page|404]]' => '<a href="/projects/ecookbook/wiki/Unknown_page" class="wiki-page new">404</a>',
       # link to another project wiki
-      '[[onlinestore:]]' => '<a href="/projects/onlinestore/wiki/" class="wiki-page">onlinestore</a>',
-      '[[onlinestore:|Wiki]]' => '<a href="/projects/onlinestore/wiki/" class="wiki-page">Wiki</a>',
+      '[[onlinestore:]]' => '<a href="/projects/onlinestore/wiki" class="wiki-page">onlinestore</a>',
+      '[[onlinestore:|Wiki]]' => '<a href="/projects/onlinestore/wiki" class="wiki-page">Wiki</a>',
       '[[onlinestore:Start page]]' => '<a href="/projects/onlinestore/wiki/Start_page" class="wiki-page">Start page</a>',
       '[[onlinestore:Start page|Text]]' => '<a href="/projects/onlinestore/wiki/Start_page" class="wiki-page">Text</a>',
       '[[onlinestore:Unknown page]]' => '<a href="/projects/onlinestore/wiki/Unknown_page" class="wiki-page new">Unknown page</a>',
@@ -575,7 +594,7 @@ EXPECTED
     
     # turn off avatars
     Setting.gravatar_enabled = '0'
-    assert_nil avatar(User.find_by_mail('jsmith@somenet.foo'))
+    assert_equal '', avatar(User.find_by_mail('jsmith@somenet.foo'))
   end
   
   def test_link_to_user
@@ -596,5 +615,17 @@ EXPECTED
     assert user.anonymous?
     t = link_to_user(user)
     assert_equal ::I18n.t(:label_user_anonymous), t
+  end
+
+  def test_link_to_project
+    project = Project.find(1)
+    assert_equal %(<a href="/projects/ecookbook">eCookbook</a>),
+                 link_to_project(project)
+    assert_equal %(<a href="/projects/ecookbook/settings">eCookbook</a>),
+                 link_to_project(project, :action => 'settings')
+    assert_equal %(<a href="http://test.host/projects/ecookbook?jump=blah">eCookbook</a>),
+                 link_to_project(project, {:only_path => false, :jump => 'blah'})
+    assert_equal %(<a href="/projects/ecookbook/settings" class="project">eCookbook</a>),
+                 link_to_project(project, {:action => 'settings'}, :class => "project")
   end
 end

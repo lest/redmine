@@ -352,6 +352,17 @@ class MailerTest < ActiveSupport::TestCase
     mail = ActionMailer::Base.deliveries.last
     assert mail.bcc.include?('dlopper@somenet.foo')
     assert mail.body.include?('Bug #3: Error 281 when updating a recipe')
+    assert_equal '1 issue(s) due in the next 42 days', mail.subject
+  end
+  
+  def test_reminders_for_users
+    Mailer.reminders(:days => 42, :users => ['5'])
+    assert_equal 0, ActionMailer::Base.deliveries.size # No mail for dlopper
+    Mailer.reminders(:days => 42, :users => ['3'])
+    assert_equal 1, ActionMailer::Base.deliveries.size # No mail for dlopper
+    mail = ActionMailer::Base.deliveries.last
+    assert mail.bcc.include?('dlopper@somenet.foo')
+    assert mail.body.include?('Bug #3: Error 281 when updating a recipe')
   end
   
   def last_email
@@ -382,4 +393,21 @@ class MailerTest < ActiveSupport::TestCase
     # should restore perform_deliveries
     assert ActionMailer::Base.perform_deliveries
   end
+
+  context "layout" do
+    should "include the emails_header" do
+      with_settings(:emails_header => "*Header content*") do
+        assert Mailer.deliver_test(User.find(1))
+
+        assert_select_email do
+          assert_select ".header" do
+            assert_select "strong", :text => "Header content"
+          end
+        end
+      end
+      
+    end
+    
+  end
+  
 end
